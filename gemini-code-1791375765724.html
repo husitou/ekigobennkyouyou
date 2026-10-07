@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>英単語・熟語・構文 暗記＆クイズマスター</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    body {
+      font-family: 'Noto Sans JP', 'Inter', sans-serif;
+      background-color: #f1f5f9;
+    }
+    
+    .perspective-1000 {
+      perspective: 1000px;
+    }
+    
+    .transform-style-3d {
+      transform-style: preserve-3d;
+    }
+    
+    .backface-hidden {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+    
+    .rotate-y-180 {
+      transform: rotateY(180deg);
+    }
+
+    .flip-card-inner {
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .flip-card-inner.is-flipped {
+      transform: rotateY(180deg);
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between">
+
+  <header class="bg-indigo-600 text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-2">
+      <div class="flex items-center space-x-2">
+        <div class="bg-yellow-400 text-indigo-900 rounded-lg p-1.5 flex items-center justify-center font-bold">
+          <i class="fa-solid fa-language text-lg"></i>
+        </div>
+        <h1 class="text-base md:text-xl font-black tracking-wide">英単語・熟語・構文マスター (全39問)</h1>
+      </div>
+      <div class="flex items-center space-x-2 text-xs md:text-sm bg-indigo-800/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-indigo-400/30">
+        <span id="mastered-count-badge" class="font-semibold text-emerald-300 flex items-center gap-1">
+          <i class="fa-solid fa-circle-check"></i> 習得: 0
+        </span>
+        <span class="text-indigo-400">|</span>
+        <span id="review-count-badge" class="font-semibold text-amber-300 flex items-center gap-1">
+          <i class="fa-solid fa-rotate-right"></i> 復習: 0
+        </span>
+      </div>
+    </div>
+    
+    <div class="max-w-4xl mx-auto px-2 flex border-t border-indigo-500/40 text-xs md:text-sm font-medium overflow-x-auto">
+      <button id="tab-flashcard" onclick="switchMode('flashcard')" class="flex-1 min-w-[90px] py-2.5 text-center border-b-2 border-white font-bold transition-all flex items-center justify-center gap-1.5 text-white">
+        <i class="fa-solid fa-layer-group"></i> <span>暗記カード</span>
+      </button>
+      <button id="tab-typing" onclick="switchMode('typing')" class="flex-1 min-w-[90px] py-2.5 text-center border-b-2 border-transparent text-indigo-200 hover:text-white transition-all flex items-center justify-center gap-1.5">
+        <i class="fa-solid fa-keyboard"></i> <span>文字入力</span>
+      </button>
+      <button id="tab-quiz" onclick="switchMode('quiz')" class="flex-1 min-w-[90px] py-2.5 text-center border-b-2 border-transparent text-indigo-200 hover:text-white transition-all flex items-center justify-center gap-1.5">
+        <i class="fa-solid fa-list-check"></i> <span>8択テスト</span>
+      </button>
+      <button id="tab-list" onclick="switchMode('list')" class="flex-1 min-w-[90px] py-2.5 text-center border-b-2 border-transparent text-indigo-200 hover:text-white transition-all flex items-center justify-center gap-1.5">
+        <i class="fa-solid fa-book-open"></i> <span>全問一覧</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto w-full px-4 py-6 flex-grow">
+
+    <!-- Mode 1: Flashcard -->
+    <section id="mode-flashcard" class="block">
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 mb-6">
+        <div class="flex justify-between items-center mb-2 text-xs md:text-sm text-slate-600 font-medium">
+          <span id="card-progress-text" class="font-bold text-slate-700">問題 1 / 39</span>
+          <div class="flex gap-2">
+            <button onclick="toggleFilterReviewOnly()" id="btn-filter-review" class="px-3 py-1.5 text-xs rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 transition flex items-center gap-1">
+              <i class="fa-solid fa-filter text-amber-500"></i> <span>要復習のみ</span>
+            </button>
+            <button onclick="shuffleCards()" class="px-3 py-1.5 text-xs rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 transition flex items-center gap-1">
+              <i class="fa-solid fa-shuffle text-indigo-500"></i> <span>シャッフル</span>
+            </button>
+          </div>
+        </div>
+        <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+          <div id="card-progress-bar" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
+        </div>
+      </div>
+
+      <div class="perspective-1000 w-full h-80 md:h-96 cursor-pointer mb-6" onclick="flipCard()">
+        <div id="flashcard-inner" class="flip-card-inner relative w-full h-full transform-style-3d rounded-3xl shadow-md border border-slate-200/80">
+          <div class="absolute inset-0 bg-white rounded-3xl p-6 md:p-8 flex flex-col justify-between backface-hidden">
+            <div class="flex justify-between items-center text-xs font-bold text-slate-400">
+              <span id="card-category-tag" class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full border border-indigo-100"><i class="fa-solid fa-language"></i> 英単語・熟語</span>
+              <span><i class="fa-solid fa-hand-pointer text-indigo-400"></i> タップで答えを表示</span>
+            </div>
+            <div class="my-auto text-center">
+              <div id="card-question" class="text-2xl md:text-4xl font-extrabold text-slate-800 tracking-wide"></div>
+            </div>
+            <div class="text-center text-xs text-slate-400 font-medium">Spaceキー または クリックで反転</div>
+          </div>
+
+          <div class="absolute inset-0 bg-slate-900 text-white rounded-3xl p-6 md:p-8 flex flex-col justify-between backface-hidden rotate-y-180 border-2 border-indigo-500">
+            <div class="flex justify-between items-center text-xs font-bold text-indigo-300">
+              <span class="bg-indigo-950 text-indigo-300 px-3 py-1 rounded-full border border-indigo-700"><i class="fa-solid fa-key"></i> 意味・解答</span>
+              <span>タップで問題に戻る</span>
+            </div>
+            <div class="my-auto text-center">
+              <div id="card-answer" class="text-2xl md:text-3xl font-extrabold text-amber-300 tracking-wide mb-2"></div>
+              <div id="card-alt-answers" class="text-xs text-indigo-300 mt-2 font-normal hidden"></div>
+            </div>
+            <div id="card-status-indicator" class="text-center text-xs font-medium"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <button onclick="markCurrentCard(false)" class="py-3.5 px-4 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 rounded-2xl font-bold flex items-center justify-center gap-2 transition active:scale-95 shadow-sm">
+          <i class="fa-solid fa-rotate-right text-amber-600"></i> もう一度復習
+        </button>
+        <button onclick="markCurrentCard(true)" class="py-3.5 px-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 rounded-2xl font-bold flex items-center justify-center gap-2 transition active:scale-95 shadow-sm">
+          <i class="fa-solid fa-check text-emerald-600"></i> 覚えた！
+        </button>
+      </div>
+
+      <div class="flex justify-between items-center gap-3">
+        <button onclick="prevCard()" class="flex-1 py-3 px-4 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-2xl font-bold flex items-center justify-center gap-2 transition shadow-sm">
+          <i class="fa-solid fa-chevron-left"></i> 前の問題
+        </button>
+        <button onclick="nextCard()" class="flex-1 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition shadow-sm">
+          次の問題 <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- Mode 2: Typing -->
+    <section id="mode-typing" class="hidden">
+      <div id="typing-active-box">
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 mb-6">
+          <div class="flex justify-between items-center mb-2 text-xs md:text-sm text-slate-600 font-medium">
+            <span id="typing-progress-text" class="font-bold text-slate-700">文字入力 1 / 39</span>
+            <span id="typing-score-text" class="text-indigo-600 font-bold">正解数: 0</span>
+          </div>
+          <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+            <div id="typing-progress-bar" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 md:p-8 mb-6">
+          <div class="flex items-center gap-2 text-xs font-bold text-indigo-600 mb-3">
+            <span id="typing-category-tag" class="bg-indigo-50 px-3 py-1 rounded-full"><i class="fa-solid fa-pen-to-square"></i> 直接入力</span>
+          </div>
+          <h3 id="typing-question-text" class="text-2xl md:text-3xl font-extrabold text-slate-800 leading-relaxed mb-6"></h3>
+
+          <form onsubmit="handleTypingSubmit(event)" class="space-y-4">
+            <input type="text" id="typing-input" autocomplete="off" placeholder="解答を入力..." 
+              class="w-full px-5 py-4 text-base md:text-lg rounded-2xl border-2 border-slate-300 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition focus:outline-none font-bold text-slate-800">
+
+            <div class="flex gap-3">
+              <button type="submit" id="btn-typing-submit" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-lg shadow-md transition flex items-center justify-center gap-2">
+                <span>回答する</span> <i class="fa-solid fa-paper-plane text-sm"></i>
+              </button>
+              <button type="button" id="btn-typing-next" onclick="nextTypingQuestion()" class="w-full py-4 bg-slate-800 hover:bg-slate-900 text-white rounded-2xl font-bold text-lg shadow-md transition flex items-center justify-center gap-2 hidden">
+                <span>次の問題へ</span> <i class="fa-solid fa-arrow-right text-sm"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div id="typing-feedback" class="hidden rounded-2xl p-6 transition-all mb-6">
+          <div id="typing-feedback-title" class="text-xl font-extrabold mb-2 flex items-center gap-2"></div>
+          <div id="typing-feedback-detail" class="text-sm md:text-base font-medium"></div>
+        </div>
+      </div>
+
+      <div id="typing-result-box" class="hidden bg-white rounded-3xl shadow-sm border border-slate-200/80 p-8 text-center">
+        <div class="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+          <i class="fa-solid fa-award"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-800 mb-2">入力テスト完了！</h2>
+        <div class="text-4xl md:text-5xl font-black text-indigo-600 mb-6" id="typing-final-score">0 / 39 正解</div>
+        
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+          <button id="btn-typing-retry-mistakes" onclick="startTypingTest(true)" class="py-3.5 px-6 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl transition shadow-md flex items-center justify-center gap-2 hidden">
+            <i class="fa-solid fa-rotate-right"></i> 間違えた問題だけやり直す
+          </button>
+          <button onclick="startTypingTest(false)" class="py-3.5 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl transition shadow-md flex items-center justify-center gap-2">
+            <i class="fa-solid fa-arrows-rotate"></i> 最初からもう一度
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mode 3: 8-Choice Quiz -->
+    <section id="mode-quiz" class="hidden">
+      <div id="quiz-active-box">
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 mb-6">
+          <div class="flex justify-between items-center mb-2 text-xs md:text-sm text-slate-600 font-medium">
+            <span id="quiz-progress-text" class="font-bold text-slate-700">クイズ 1 / 39</span>
+            <span id="quiz-score-text" class="text-indigo-600 font-bold">正解数: 0</span>
+          </div>
+          <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+            <div id="quiz-progress-bar" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 md:p-8 mb-6">
+          <div class="text-xs font-bold text-indigo-600 mb-2 flex items-center gap-1">
+            <span id="quiz-category-tag" class="bg-indigo-50 px-2.5 py-0.5 rounded-full"><i class="fa-solid fa-circle-question"></i> 8択テスト</span>
+          </div>
+          <h3 id="quiz-question-text" class="text-2xl md:text-3xl font-extrabold text-slate-800 leading-relaxed"></h3>
+        </div>
+
+        <div id="quiz-options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6"></div>
+
+        <div id="quiz-feedback" class="hidden p-4 rounded-2xl mb-4 text-center font-bold transition"></div>
+
+        <button id="btn-quiz-next" onclick="nextQuizQuestion()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-base shadow-md transition hidden">
+          次の問題へ <i class="fa-solid fa-arrow-right ml-1"></i>
+        </button>
+      </div>
+
+      <div id="quiz-result-box" class="hidden bg-white rounded-3xl shadow-sm border border-slate-200/80 p-8 text-center">
+        <div class="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+          <i class="fa-solid fa-trophy"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-800 mb-2">8択テスト完了！</h2>
+        <div class="text-4xl md:text-5xl font-black text-indigo-600 mb-6" id="quiz-final-score">0 / 39 正解</div>
+        
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+          <button id="btn-quiz-retry-mistakes" onclick="startQuiz(true)" class="py-3.5 px-6 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl transition shadow-md flex items-center justify-center gap-2 hidden">
+            <i class="fa-solid fa-rotate-right"></i> 間違えた問題だけやり直す
+          </button>
+          <button onclick="startQuiz(false)" class="py-3.5 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl transition shadow-md flex items-center justify-center gap-2">
+            <i class="fa-solid fa-arrows-rotate"></i> 最初から再チャレンジ
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mode 4: List Mode -->
+    <section id="mode-list" class="hidden">
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 mb-6 flex flex-col md:flex-row gap-3">
+        <div class="relative flex-1">
+          <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400"></i>
+          <input type="text" id="list-search-input" oninput="filterList()" placeholder="単語や日本語の意味で検索..." 
+            class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <button onclick="toggleAllAnswersInList()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs md:text-sm rounded-xl transition whitespace-nowrap flex items-center justify-center gap-2">
+          <i class="fa-solid fa-eye"></i> <span>答え全表示 / 隠す</span>
+        </button>
+      </div>
+
+      <div id="question-list-container" class="space-y-3"></div>
+    </section>
+
+  </main>
+
+  <script>
+    const rawQuestions = [
+      { id: 1, category: "単語", q: "deep", a: "深い", alt: ["ふかい"] },
+      { id: 2, category: "単語", q: "least", a: "最も…ない", alt: ["もっともない", "最もない"] },
+      { id: 3, category: "単語", q: "weak", a: "弱い", alt: ["よわい"] },
+      { id: 4, category: "単語", q: "ill", a: "病気で", alt: ["びょうきで"] },
+      { id: 5, category: "単語", q: "factory", a: "工場", alt: ["こうじょう"] },
+      { id: 6, category: "単語", q: "far", a: "遠くに", alt: ["とおくに"] },
+      { id: 7, category: "単語", q: "already", a: "すでに", alt: ["スデニ"] },
+      { id: 8, category: "動詞", q: "share", a: "…を一緒に使う", alt: ["をいっしょにつかう", "一緒に使う"] },
+      { id: 9, category: "動詞", q: "approach", a: "（…に）近づく", alt: ["ちかづく", "近づく"] },
+      { id: 10, category: "動詞", q: "attend", a: "…に出席する", alt: ["にしゅっせきする", "出席する"] },
+      { id: 11, category: "熟語", q: "turn around", a: "振り返る", alt: ["ふりかえる"] },
+      { id: 12, category: "熟語", q: "take part in", a: "に参加する", alt: ["にしんかしする", "参加する"] },
+      { id: 13, category: "表現", q: "than usual", a: "いつもより", alt: ["いつもより"] },
+      { id: 14, category: "熟語", q: "make a speech", a: "演説する", alt: ["えんぜつする"] },
+      { id: 15, category: "表現", q: "hate speech", a: "憎悪発言", alt: ["ぞうおはつげん"] },
+      { id: 16, category: "熟語", q: "introduce oneself", a: "自己紹介する", alt: ["じこしょうかいする"] },
+      { id: 17, category: "熟語", q: "for a moment", a: "少しの間", alt: ["すこしのあいだ"] },
+      { id: 18, category: "熟語", q: "be sick in bed", a: "病気で寝ている", alt: ["びょうきでねている"] },
+      { id: 19, category: "構文", q: "It seems that", a: "であるように思える", alt: ["であるようにおもえる"] },
+      { id: 20, category: "熟語", q: "at once", a: "すぐに", alt: ["スグニ"] },
+      { id: 21, category: "構文", q: "remember to do", a: "忘れないで…する", alt: ["わすれないでする", "忘れないでいる"] },
+      { id: 22, category: "熟語", q: "be based on", a: "に基づいている", alt: ["にもとづいている"] },
+      { id: 23, category: "熟語", q: "escape from", a: "から逃げる", alt: ["からにげる"] },
+      { id: 24, category: "熟語", q: "be free from", a: "のない", alt: ["のない"] },
+      { id: 25, category: "熟語", q: "die of", a: "で死ぬ", alt: ["でしぬ"] },
+      { id: 26, category: "穴埋め", q: "( ) than + 数量 【未満の】", a: "less", alt: ["レス"] },
+      { id: 27, category: "穴埋め", q: "( ) up 【(1)をひろう (2)を車で迎えに行く】", a: "pick", alt: ["ピック"] },
+      { id: 28, category: "穴埋め", q: "by ( ) 【偶然に】", a: "chance", alt: ["チャンス"] },
+      { id: 29, category: "穴埋め", q: "( ) A from B 【AをBから守る】", a: "protect", alt: ["プロテクト"] },
+      { id: 30, category: "穴埋め", q: "take (have) a ( ) 【休憩をとる】", a: "break", alt: ["ブレイク"] },
+      { id: 31, category: "穴埋め", q: "( ) rain 【激しい雨】", a: "heavy", alt: ["ヘビー", "ヘヴィー"] },
+      { id: 32, category: "穴埋め", q: "( ) to do 【…するように見える】", a: "appear", alt: ["アピア"] },
+      { id: 33, category: "穴埋め", q: "get ( ) to 【…と結婚する】", a: "married", alt: ["マリード"] },
+      { id: 34, category: "穴埋め", q: "( ) doing 【試しに…してみる】", a: "try", alt: ["トライ"] },
+      { id: 35, category: "穴埋め", q: "in ( ) 【実は、実際は】", a: "fact", alt: ["ファクト"] },
+      { id: 36, category: "穴埋め", q: "( ) up 【元気づける】", a: "cheer", alt: ["チア"] },
+      { id: 37, category: "穴埋め", q: "( ) from 【…を卒業する】", a: "graduate", alt: ["グラジュエイト"] },
+      { id: 38, category: "穴埋め", q: "( ) type 【血液型】", a: "blood", alt: ["ブラッド"] },
+      { id: 39, category: "穴埋め", q: "be ( ) at 【…に衝撃を受ける】", a: "shocked", alt: ["ショックト"] }
+    ];
+
+    let currentMode = 'flashcard';
+    let userProgress = {};
+
+    let cardDeck = [...rawQuestions];
+    let cardIndex = 0;
+    let isFlipped = false;
+    let filterReviewOnly = false;
+
+    let typingDeck = [];
+    let typingIndex = 0;
+    let typingScore = 0;
+    let typingAnswered = false;
+    let typingMistakes = [];
+
+    let quizDeck = [];
+    let quizIndex = 0;
+    let quizScore = 0;
+    let quizAnswered = false;
+    let quizMistakes = [];
+
+    function switchMode(mode) {
+      currentMode = mode;
+      ['flashcard', 'typing', 'quiz', 'list'].forEach(m => {
+        const tab = document.getElementById(`tab-${m}`);
+        const sec = document.getElementById(`mode-${m}`);
+        if (m === mode) {
+          tab.className = "flex-1 min-w-[90px] py-2.5 text-center border-b-2 border-white font-bold transition-all flex items-center justify-center gap-1.5 text-white";
+          sec.classList.remove('hidden');
+        } else {
+          tab.className = "flex-1 min-w-[90px] py-2.5 text-center border-b-2 border-transparent text-indigo-200 hover:text-white transition-all flex items-center justify-center gap-1.5";
+          sec.classList.add('hidden');
+        }
+      });
+
+      if (mode === 'typing' && typingDeck.length === 0) startTypingTest(false);
+      else if (mode === 'quiz' && quizDeck.length === 0) startQuiz(false);
+      else if (mode === 'list') renderQuestionList();
+    }
+
+    function updateHeaderBadges() {
+      let mastered = 0, review = 0;
+      Object.values(userProgress).forEach(val => {
+        if (val === 'mastered') mastered++;
+        if (val === 'review') review++;
+      });
+      document.getElementById('mastered-count-badge').innerHTML = `<i class="fa-solid fa-circle-check"></i> 習得: ${mastered}`;
+      document.getElementById('review-count-badge').innerHTML = `<i class="fa-solid fa-rotate-right"></i> 復習: ${review}`;
+    }
+
+    function renderFlashcard() {
+      if (cardDeck.length === 0) {
+        document.getElementById('card-question').innerText = "該当する問題がありません";
+        document.getElementById('card-answer').innerText = "-";
+        return;
+      }
+
+      const item = cardDeck[cardIndex];
+      document.getElementById('card-question').innerText = item.q;
+      document.getElementById('card-answer').innerText = item.a;
+      document.getElementById('card-category-tag').innerText = item.category;
+
+      const altBox = document.getElementById('card-alt-answers');
+      if (item.alt && item.alt.length > 0) {
+        altBox.classList.remove('hidden');
+        altBox.innerText = `（別解例: ${item.alt.join(', ')}）`;
+      } else {
+        altBox.classList.add('hidden');
+      }
+
+      document.getElementById('flashcard-inner').classList.remove('is-flipped');
+      isFlipped = false;
+
+      document.getElementById('card-progress-text').innerText = `問題 ${cardIndex + 1} / ${cardDeck.length}`;
+      document.getElementById('card-progress-bar').style.width = `${((cardIndex + 1) / cardDeck.length) * 100}%`;
+
+      const statusInd = document.getElementById('card-status-indicator');
+      const st = userProgress[item.id];
+      if (st === 'mastered') {
+        statusInd.innerHTML = '<span class="bg-emerald-500/30 text-emerald-200 px-3 py-1 rounded-full border border-emerald-400/40"><i class="fa-solid fa-circle-check"></i> 習得済み</span>';
+      } else if (st === 'review') {
+        statusInd.innerHTML = '<span class="bg-amber-500/30 text-amber-200 px-3 py-1 rounded-full border border-amber-400/40"><i class="fa-solid fa-circle-exclamation"></i> 要復習</span>';
+      } else {
+        statusInd.innerHTML = '<span class="text-indigo-300">未学習</span>';
+      }
+
+      updateHeaderBadges();
+    }
+
+    function flipCard() {
+      isFlipped = !isFlipped;
+      document.getElementById('flashcard-inner').classList.toggle('is-flipped', isFlipped);
+    }
+
+    function nextCard() {
+      if (cardDeck.length === 0) return;
+      cardIndex = (cardIndex + 1) % cardDeck.length;
+      renderFlashcard();
+    }
+
+    function prevCard() {
+      if (cardDeck.length === 0) return;
+      cardIndex = (cardIndex - 1 + cardDeck.length) % cardDeck.length;
+      renderFlashcard();
+    }
+
+    function markCurrentCard(isMastered) {
+      if (cardDeck.length === 0) return;
+      const item = cardDeck[cardIndex];
+      userProgress[item.id] = isMastered ? 'mastered' : 'review';
+      updateHeaderBadges();
+      nextCard();
+    }
+
+    function shuffleCards() {
+      for (let i = cardDeck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cardDeck[i], cardDeck[j]] = [cardDeck[j], cardDeck[i]];
+      }
+      cardIndex = 0;
+      renderFlashcard();
+    }
+
+    function toggleFilterReviewOnly() {
+      filterReviewOnly = !filterReviewOnly;
+      const btn = document.getElementById('btn-filter-review');
+      if (filterReviewOnly) {
+        btn.className = "px-3 py-1.5 text-xs rounded-xl border border-amber-500 bg-amber-50 text-amber-700 font-bold transition flex items-center gap-1";
+        cardDeck = rawQuestions.filter(q => userProgress[q.id] === 'review');
+      } else {
+        btn.className = "px-3 py-1.5 text-xs rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 transition flex items-center gap-1";
+        cardDeck = [...rawQuestions];
+      }
+      cardIndex = 0;
+      renderFlashcard();
+    }
+
+    function normalizeText(str) {
+      if (!str) return '';
+      return str.trim().toLowerCase()
+        .replace(/[Ａ-Ｚａ-ｚ０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+        .replace(/[\s ・（）\(\)\-\_…]+/g, '');
+    }
+
+    function startTypingTest(onlyMistakes = false) {
+      typingDeck = (onlyMistakes && typingMistakes.length > 0)
+        ? [...typingMistakes].sort(() => Math.random() - 0.5)
+        : [...rawQuestions].sort(() => Math.random() - 0.5);
+      
+      typingIndex = 0;
+      typingScore = 0;
+      typingMistakes = [];
+
+      document.getElementById('typing-active-box').classList.remove('hidden');
+      document.getElementById('typing-result-box').classList.add('hidden');
+      renderTypingQuestion();
+    }
+
+    function renderTypingQuestion() {
+      typingAnswered = false;
+      const item = typingDeck[typingIndex];
+
+      document.getElementById('typing-progress-text').innerText = `文字入力 ${typingIndex + 1} / ${typingDeck.length}`;
+      document.getElementById('typing-score-text').innerText = `正解数: ${typingScore}`;
+      document.getElementById('typing-progress-bar').style.width = `${((typingIndex + 1) / typingDeck.length) * 100}%`;
+
+      document.getElementById('typing-question-text').innerText = item.q;
+      document.getElementById('typing-category-tag').innerText = item.category;
+
+      const input = document.getElementById('typing-input');
+      input.value = '';
+      input.disabled = false;
+      input.className = "w-full px-5 py-4 text-base md:text-lg rounded-2xl border-2 border-slate-300 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 transition focus:outline-none font-bold text-slate-800";
+      setTimeout(() => input.focus(), 100);
+
+      document.getElementById('btn-typing-submit').classList.remove('hidden');
+      document.getElementById('btn-typing-next').classList.add('hidden');
+      document.getElementById('typing-feedback').className = "hidden rounded-2xl p-6 transition-all mb-6";
+    }
+
+    function handleTypingSubmit(e) {
+      if (e) e.preventDefault();
+      if (typingAnswered) return nextTypingQuestion();
+
+      const input = document.getElementById('typing-input');
+      const userVal = input.value;
+      if (!userVal.trim()) return;
+
+      typingAnswered = true;
+      input.disabled = true;
+
+      const item = typingDeck[typingIndex];
+      const acceptable = [item.a, ...(item.alt || [])].map(normalizeText);
+      const isCorrect = acceptable.includes(normalizeText(userVal));
+
+      const feedback = document.getElementById('typing-feedback');
+      feedback.classList.remove('hidden');
+
+      if (isCorrect) {
+        typingScore++;
+        userProgress[item.id] = 'mastered';
+        input.className = "w-full px-5 py-4 text-base md:text-lg rounded-2xl border-2 border-emerald-500 bg-emerald-50 font-bold text-emerald-900";
+        feedback.className = "rounded-2xl p-6 bg-emerald-50 border-2 border-emerald-400 text-emerald-900 mb-6";
+        document.getElementById('typing-feedback-title').innerHTML = '<i class="fa-solid fa-circle-check text-emerald-600"></i> <span>正解！</span>';
+        document.getElementById('typing-feedback-detail').innerHTML = `正解: <span class="font-extrabold text-emerald-700">${item.a}</span>`;
+      } else {
+        typingMistakes.push(item);
+        userProgress[item.id] = 'review';
+        input.className = "w-full px-5 py-4 text-base md:text-lg rounded-2xl border-2 border-rose-500 bg-rose-50 font-bold text-rose-900";
+        feedback.className = "rounded-2xl p-6 bg-rose-50 border-2 border-rose-300 text-rose-900 mb-6";
+        document.getElementById('typing-feedback-title').innerHTML = '<i class="fa-solid fa-circle-xmark text-rose-600"></i> <span>不正解...</span>';
+        document.getElementById('typing-feedback-detail').innerHTML = `あなたの解答: <span class="line-through text-rose-700 mr-3">${userVal}</span> 正解: <span class="font-extrabold text-slate-900 bg-amber-200 px-2 py-0.5 rounded">${item.a}</span>`;
+      }
+
+      updateHeaderBadges();
+      document.getElementById('btn-typing-submit').classList.add('hidden');
+      document.getElementById('btn-typing-next').classList.remove('hidden');
+    }
+
+    function nextTypingQuestion() {
+      typingIndex++;
+      if (typingIndex < typingDeck.length) renderTypingQuestion();
+      else showTypingResult();
+    }
+
+    function showTypingResult() {
+      document.getElementById('typing-active-box').classList.add('hidden');
+      document.getElementById('typing-result-box').classList.remove('hidden');
+      document.getElementById('typing-final-score').innerText = `${typingScore} / ${typingDeck.length} 正解`;
+      document.getElementById('btn-typing-retry-mistakes').classList.toggle('hidden', typingMistakes.length === 0);
+    }
+
+    function startQuiz(onlyMistakes = false) {
+      quizDeck = (onlyMistakes && quizMistakes.length > 0)
+        ? [...quizMistakes].sort(() => Math.random() - 0.5)
+        : [...rawQuestions].sort(() => Math.random() - 0.5);
+
+      quizIndex = 0;
+      quizScore = 0;
+      quizMistakes = [];
+      
+      document.getElementById('quiz-active-box').classList.remove('hidden');
+      document.getElementById('quiz-result-box').classList.add('hidden');
+      renderQuizQuestion();
+    }
+
+    function renderQuizQuestion() {
+      quizAnswered = false;
+      const item = quizDeck[quizIndex];
+      
+      document.getElementById('quiz-progress-text').innerText = `8択テスト ${quizIndex + 1} / ${quizDeck.length}`;
+      document.getElementById('quiz-score-text').innerText = `正解数: ${quizScore}`;
+      document.getElementById('quiz-progress-bar').style.width = `${((quizIndex + 1) / quizDeck.length) * 100}%`;
+      
+      document.getElementById('quiz-question-text').innerText = item.q;
+      document.getElementById('quiz-category-tag').innerText = item.category;
+
+      const options = [item.a];
+      const otherAnswers = [...new Set(rawQuestions.map(q => q.a))].filter(a => a !== item.a);
+      
+      while (options.length < 8 && otherAnswers.length > 0) {
+        const randIdx = Math.floor(Math.random() * otherAnswers.length);
+        options.push(otherAnswers.splice(randIdx, 1)[0]);
+      }
+      options.sort(() => Math.random() - 0.5);
+
+      const grid = document.getElementById('quiz-options-grid');
+      grid.innerHTML = '';
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left p-3.5 bg-white hover:bg-indigo-50 border border-slate-200 rounded-2xl font-bold text-slate-800 transition flex justify-between items-center shadow-sm text-sm md:text-base";
+        btn.innerHTML = `<span>${opt}</span> <i class="fa-regular fa-circle text-slate-300"></i>`;
+        btn.onclick = () => selectQuizOption(btn, opt, item.a);
+        grid.appendChild(btn);
+      });
+
+      document.getElementById('quiz-feedback').className = "hidden p-4 rounded-2xl mb-4 text-center font-bold transition";
+      document.getElementById('btn-quiz-next').classList.add('hidden');
+    }
+
+    function selectQuizOption(btnElement, selectedOpt, correctOpt) {
+      if (quizAnswered) return;
+      quizAnswered = true;
+
+      const feedback = document.getElementById('quiz-feedback');
+      feedback.classList.remove('hidden');
+      const item = quizDeck[quizIndex];
+
+      if (selectedOpt === correctOpt) {
+        quizScore++;
+        userProgress[item.id] = 'mastered';
+        btnElement.className = "w-full text-left p-3.5 bg-emerald-100 border-2 border-emerald-500 rounded-2xl font-bold text-emerald-900 flex justify-between items-center shadow-sm text-sm md:text-base";
+        btnElement.querySelector('i').className = "fa-solid fa-circle-check text-emerald-600 text-xl";
+        feedback.className = "p-4 rounded-2xl mb-4 text-center font-bold bg-emerald-100 text-emerald-800 border border-emerald-300";
+        feedback.innerHTML = '<i class="fa-solid fa-circle-check"></i> 正解！';
+      } else {
+        quizMistakes.push(item);
+        userProgress[item.id] = 'review';
+        btnElement.className = "w-full text-left p-3.5 bg-rose-100 border-2 border-rose-500 rounded-2xl font-bold text-rose-900 flex justify-between items-center shadow-sm text-sm md:text-base";
+        btnElement.querySelector('i').className = "fa-solid fa-circle-xmark text-rose-600 text-xl";
+        feedback.className = "p-4 rounded-2xl mb-4 text-center font-bold bg-rose-100 text-rose-800 border border-rose-300";
+        feedback.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> 不正解... 正解は 「<span class="underline">${correctOpt}</span>」 です`;
+
+        document.querySelectorAll('#quiz-options-grid button').forEach(b => {
+          if (b.innerText.includes(correctOpt)) {
+            b.className = "w-full text-left p-3.5 bg-emerald-50 border border-emerald-400 rounded-2xl font-bold text-emerald-800 flex justify-between items-center text-sm md:text-base";
+          }
+        });
+      }
+
+      updateHeaderBadges();
+      document.getElementById('btn-quiz-next').classList.remove('hidden');
+    }
+
+    function nextQuizQuestion() {
+      quizIndex++;
+      if (quizIndex < quizDeck.length) renderQuizQuestion();
+      else showQuizResult();
+    }
+
+    function showQuizResult() {
+      document.getElementById('quiz-active-box').classList.add('hidden');
+      document.getElementById('quiz-result-box').classList.remove('hidden');
+      document.getElementById('quiz-final-score').innerText = `${quizScore} / ${quizDeck.length} 正解`;
+      document.getElementById('btn-quiz-retry-mistakes').classList.toggle('hidden', quizMistakes.length === 0);
+    }
+
+    let listAnswersVisible = false;
+
+    function renderQuestionList() {
+      const container = document.getElementById('question-list-container');
+      const searchText = document.getElementById('list-search-input').value.toLowerCase();
+      container.innerHTML = '';
+
+      const filtered = rawQuestions.filter(item => 
+        item.q.toLowerCase().includes(searchText) || 
+        item.a.toLowerCase().includes(searchText) || 
+        item.category.toLowerCase().includes(searchText)
+      );
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-slate-400 font-medium">該当する問題が見つかりません</div>';
+        return;
+      }
+
+      filtered.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = "bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3";
+        const isMastered = userProgress[item.id] === 'mastered';
+
+        div.innerHTML = `
+          <div class="flex-1">
+            <div class="text-xs font-bold text-indigo-600 mb-1">[${item.category}] 問題 ${index + 1}</div>
+            <div class="text-slate-800 font-bold mb-2 text-lg">${item.q}</div>
+            <div class="answer-text ${listAnswersVisible ? '' : 'hidden'} text-amber-800 font-bold bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 inline-block text-sm">
+              解答: ${item.a}
+            </div>
+          </div>
+          <div class="flex items-center gap-2 self-end sm:self-center">
+            <button onclick="toggleSingleListAnswer(this)" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition">
+              答え表示
+            </button>
+            <button onclick="toggleListMastery(${item.id})" class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
+              isMastered ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+            }">
+              <i class="fa-solid fa-check"></i> ${isMastered ? '習得済み' : '未習得'}
+            </button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function toggleSingleListAnswer(btn) {
+      btn.closest('div').parentElement.querySelector('.answer-text').classList.toggle('hidden');
+    }
+
+    function toggleAllAnswersInList() {
+      listAnswersVisible = !listAnswersVisible;
+      renderQuestionList();
+    }
+
+    function filterList() {
+      renderQuestionList();
+    }
+
+    function toggleListMastery(id) {
+      userProgress[id] = userProgress[id] === 'mastered' ? 'review' : 'mastered';
+      updateHeaderBadges();
+      renderQuestionList();
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (currentMode === 'flashcard') {
+        if (e.code === 'Space') { e.preventDefault(); flipCard(); }
+        else if (e.code === 'ArrowRight') nextCard();
+        else if (e.code === 'ArrowLeft') prevCard();
+      }
+    });
+
+    window.onload = function() {
+      renderFlashcard();
+      updateHeaderBadges();
+    };
+  </script>
+</body>
+</html>
